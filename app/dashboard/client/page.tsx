@@ -1,32 +1,37 @@
+// src/app/dashboard/DashboardClient.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { socket } from '../../lib/socketClient';
 import { useDashboardStore } from '../../store/dashboard.store';
+import type { DashboardData } from '../../types/dashboard';
 
-interface DashboardClientProps {
-  initialData: {
-    users: number;
-    sales: number;
-  };
-  fromCache: boolean;
-}
+type DashboardClientProps = {
+  initialData: DashboardData;
+};
 
-export default function DashboardClient({ initialData, fromCache }: DashboardClientProps) {
-  const { data, setData, loading } = useDashboardStore();
+
+export default function DashboardClient({ initialData }: DashboardClientProps) {
+  const { data, setData } = useDashboardStore();
+  const [progress, setProgress] = useState<number | null>(null);
 
   useEffect(() => {
     setData(initialData);
-  }, [initialData]);
 
-  if (!data) return <p>Cargando...</p>;
+    fetch('/api/socket');
+    socket.connect();
 
-  return (
-    <div className="mt-4">
-      <p>Usuarios: {data.users}</p>
-      <p>Ventas: {data.sales}</p>
-      <p className="text-sm text-gray-500">
-        {fromCache ? 'Desde cache' : 'Calculado'}
-      </p>
-    </div>
-  );
+    socket.on('progress', (value: number) => setProgress(value));
+    socket.on('done', (newData: DashboardData) => {
+      setData(newData);
+      setProgress(null);
+    });
+
+    return () => {
+      socket.off('progress');
+      socket.off('done');
+      socket.disconnect();
+    };
+  }, [initialData, setData]);
+
 }
