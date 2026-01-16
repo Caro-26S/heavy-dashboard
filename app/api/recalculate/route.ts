@@ -1,26 +1,23 @@
-// src/app/api/recalculate/route.ts
+// app/api/recalculate/route.ts
 import { NextResponse } from 'next/server';
 import { redis } from '../../lib/redis';
-import { heavyQuery } from '../../lib/heavyQuery';
-
-const CACHE_KEY = 'dashboard:data';
 
 export async function POST() {
-  // no esperamos respuesta pesada en el cliente
-  recalculateInBackground();
+  console.log('🔥 Recalculando datos');
+
+  // Simula query pesada
+  await new Promise(res => setTimeout(res, 3000));
+
+  const data = {
+    users: Math.floor(Math.random() * 1000),
+    sales: Math.floor(Math.random() * 5000),
+  };
+
+  // Cache
+  await redis.set('dashboard:data', JSON.stringify(data));
+
+  // 🔥 PUBLICA EVENTO
+  await redis.publish('dashboard:updated', JSON.stringify(data));
 
   return NextResponse.json({ ok: true });
-}
-
-async function recalculateInBackground() {
-  // Simula progreso
-  for (let i = 1; i <= 3; i++) {
-    await new Promise(res => setTimeout(res, 2000));
-    globalThis.io?.emit('progress', i * 33);
-  }
-
-  const data = await heavyQuery();
-  await redis.set(CACHE_KEY, JSON.stringify(data), 'EX', 60);
-
-  globalThis.io?.emit('done', data);
 }

@@ -21,7 +21,6 @@ export default function DashboardClient({
   useEffect(() => {
     setData(initialData);
 
-    fetch('/api/socket'); // inicializa socket server
     socket.connect();
 
     socket.on('progress', (value: number) => {
